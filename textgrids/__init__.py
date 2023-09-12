@@ -369,7 +369,7 @@ class TextGrid(OrderedDict):
                 coding = 'utf-16-be'
                 data = data[2:]
             # Now convert to a text buffer
-            buff = [s.strip() for s in data.decode(coding).split('\n')]
+            buff = [s.strip() for s in data.decode(coding).split('\n') if s.strip()]
             # Check and then discard header
             if buff[:len(text)] != text:
                 raise TypeError
