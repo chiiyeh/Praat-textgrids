@@ -186,11 +186,11 @@ class Tier(list):
 class TextGrid(OrderedDict):
     '''TextGrid is a dict of tier names (keys) and Tiers (values).'''
 
-    def __init__(self, filename=None, xmin=0.0):
+    def __init__(self, filename=None, xmin=0.0, coding=None):
         self.xmin = self.xmax = xmin
         self.filename = filename
         if self.filename:
-            self.read(self.filename)
+            self.read(self.filename, coding=coding)
 
     def __repr__(self):
         '''Return Praat (long) text format representation'''
@@ -346,7 +346,7 @@ class TextGrid(OrderedDict):
         for tier in tiers:
             self[tier].offset_time(offset)
 
-    def parse(self, data):
+    def parse(self, data, coding=None):
         '''Parse textgrid data.
 
         Obligatory argument "data" is bytes.
@@ -363,16 +363,18 @@ class TextGrid(OrderedDict):
             except (IndexError, ValueError):
                 raise BinaryError
         else:
-            coding = 'utf-8'
-            # Note and then discard BOM
-            if data[:2] == b'\xfe\xff':
-                coding = 'utf-16-be'
-                data = data[2:]
+            if not coding:
+                coding = 'utf-8'
+                # Note and then discard BOM
+                if data[:2] == b'\xfe\xff':
+                    coding = 'utf-16-be'
+                    data = data[2:]
             # Now convert to a text buffer
             buff = [s.strip() for s in data.decode(coding).split('\n') if s.strip()]
             # Check and then discard header
             if buff[:len(text)] != text:
-                raise TypeError
+                import warnings
+                warnings.warn('The header might not be correct - trying to parse anyway...')
             buff = buff[len(text):]
             # If the next line starts with a number, this is a short textgrid
             if buff[0][0] in '-0123456789':
@@ -490,7 +492,7 @@ class TextGrid(OrderedDict):
                     p += 3
             self[tier_name] = tier
 
-    def read(self, filename):
+    def read(self, filename, coding=None):
         '''Read given file as a TextGrid.
 
         "filename" is the name of the file.
@@ -498,7 +500,7 @@ class TextGrid(OrderedDict):
         self.filename = filename
         with open(self.filename, 'rb') as infile:
             data = infile.read()
-        self.parse(data)
+        self.parse(data, coding=coding)
 
     def tier_from_csv(self, tier_name, filename):
         '''Import CSV file to an interval or point tier.
